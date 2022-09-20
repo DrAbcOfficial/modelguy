@@ -1,6 +1,7 @@
 #include "util.h"
 #include "studio.h"
 #include "Model.h"
+#include "lib/bmp.h"
 #include <string>
 #include <algorithm>
 #include <iostream>
@@ -34,6 +35,28 @@ int crop_texture(string inputFile, string outputFile, string texName, int width,
 	if (!model.cropTexture(texName, width, height))
 		return 1;
 
+	model.write(outputFile);
+
+	return 0;
+}
+
+int replace_texture(string inputFile, string outputFile, string inputImage, string replaceTex) {
+	Model model(inputFile);
+	if (!model.validate())
+		return 1;
+
+	BMP bitmap;
+	byte* pixels = bitmap.load(inputImage);
+#define PALLET_SIZE 256 * 3
+	byte pallet[PALLET_SIZE];
+	for (int i = 0; i < PALLET_SIZE; i+= 3) {
+		pallet[i + 0] = bitmap.palette->rgbRed;
+		pallet[i + 1] = bitmap.palette->rgbGreen;
+		pallet[i + 2] = bitmap.palette->rgbBlue;
+	}
+#undef PALLET_SIZE
+	if (!model.replaceTexture(replaceTex, pallet, pixels))
+		return 1;
 	model.write(outputFile);
 
 	return 0;
@@ -116,6 +139,14 @@ int main(int argc, char* argv[])
 					outputFile = arg;
 				}
 			}
+			if (command == "repalce") {
+				if (i == 2) {
+					texName = arg;
+				}
+				else if (i == 3) {
+					newTexName = arg;
+				}
+			}
 		}
 
 		if (larg.find("-help") == 0 || argc <= 1)
@@ -130,12 +161,14 @@ int main(int argc, char* argv[])
 			"  crop   : Crops a texture to the specified dimensions. Used after compiling model.\n"
 			"           Takes <width>x<height> as parameters.\n"
 			"  rename : Renames a texture. Takes <old name> <new name> as parameters.\n"
+			"  replace: Replace a texture, Takes <texture name> <new image path>\n"
 			"  info   : Write model info to a JSON file. Takes <input.mdl> <output.json> as parameters\n\n"
 
 			"\nExamples:\n"
 			"  modelguy merge barney.mdl\n"
 			"  modelguy crop face.bmp 100x80 hgrunt.mdl\n"
 			"  modelguy rename hev_arm.bmp Remap1_000_255_255.bmp v_shotgun.mdl\n"
+			"  modelguy replace hev_arm.bmp \"./new_hev_arm.bmp\" v_shotgun.mdl\n"
 			;
 			return 0;
 		}
@@ -193,6 +226,17 @@ int main(int argc, char* argv[])
 			return 1;
 		}
 		dump_info(inputFile, outputFile);
+	}
+	else if (command == "repalce") {
+		if (texName.size() == 0) {
+			cout << "ERROR: No texture name specified\n";
+			return 1;
+		}
+		if (newTexName.size() == 0) {
+			cout << "ERROR: No new texture path specified\n";
+			return 1;
+		}
+		return replace_texture(inputFile, outputFile, newTexName, texName);
 	}
 	else {
 		cout << "unrecognized command: " << command << endl;

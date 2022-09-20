@@ -29,4 +29,4 @@ else()
 endif()
 
 include_directories(src)
-add_executable(${PROJECT_NAME} ${SOURCE_FILES})
+add_executable(${PROJECT_NAME} ${SOURCE_FILES} "src/lib/bmp.h" "src/lib/bmp.cpp")

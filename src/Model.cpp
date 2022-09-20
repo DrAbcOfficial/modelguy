@@ -508,6 +508,29 @@ bool Model::cropTexture(string cropName, int newWidth, int newHeight) {
 	return false;
 }
 
+bool Model::replaceTexture(string texName, byte* newPalette, byte* newPixels) {
+	for (int i = 0; i < header->numtextures; i++) {
+		data.seek(header->textureindex + i * sizeof(mstudiotexture_t));
+		mstudiotexture_t* texture = (mstudiotexture_t*)data.get();
+		string name = texture->name;
+
+		if (string(texture->name) != texName) {
+			continue;
+		}
+
+		cout << "Replacing " << texName << endl;
+
+		data.seek(texture->index);
+		int texSize = texture->width * texture->height;
+		int palSize = 256 * 3;
+		data.write(newPixels, texSize);
+		data.write(newPalette, palSize);
+		return true;
+	}
+	cout << "ERROR: No texture found with name '" << texName << "'\n";
+	return false;
+}
+
 bool Model::renameTexture(string oldName, string newName) {
 	for (int i = 0; i < header->numtextures; i++) {
 		data.seek(header->textureindex + i * sizeof(mstudiotexture_t));
